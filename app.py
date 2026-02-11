@@ -17,7 +17,7 @@ conn = st.connection("gsheets", type=GSheetsConnection)
 # Načtení dat z listu "Odpovědi formuláře 1" (vytvoří ho Google Form automaticky)
 try:
     # Pokud jsi formulář už propojil, list se jmenuje takto:
-    df = conn.read(worksheet="Odpovědi formuláře 1")
+    df = conn.read(worksheet="Form_Responses")
     
     # Přejmenování sloupců z formuláře na krátké názvy pro kód
     # Předpokládám pořadí: Časové razítko, SPZ, Vozidlo, Datum STK

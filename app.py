@@ -17,7 +17,7 @@ ODKAZ_NA_FORMULAR = "https://forms.gle/xSDhpAeK5ZC83DEZ6"
 try:
     # ttl=0 zajistí, že při každém Refresh (F5) uvidíš nová data
     # POZOR: Tady musí být název listu přesně podle tabulky!
-    df = conn.read(worksheet="Form_Responses", ttl=0)
+    df = conn.read(worksheet="Data", ttl=0)
     
     if df is not None and not df.empty:
         st.success("✅ Data úspěšně načtena z Google Sheets")

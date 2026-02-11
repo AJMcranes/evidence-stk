@@ -5,7 +5,7 @@ from datetime import datetime
 
 # --- KONFIGURACE ---
 # !!! SEM VLOŽ ODKAZ NA SVŮJ GOOGLE FORMULÁŘ !!!
-ODKAZ_NA_FORMULAR = "https://docs.google.com/forms/d/e/TVUJ_KOD_FORMULARE/viewform"
+ODKAZ_NA_FORMULAR = "https://forms.gle/fbfP7nSosXRdyEQBA"
 
 st.set_page_config(page_title="Firemní STK hlídač", layout="centered")
 

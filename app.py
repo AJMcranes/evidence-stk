@@ -3,6 +3,10 @@ from streamlit_gsheets import GSheetsConnection
 import pandas as pd
 from datetime import datetime
 
+# --- KONFIGURACE ---
+# !!! SEM VLOŽ ODKAZ NA SVŮJ GOOGLE FORMULÁŘ !!!
+ODKAZ_NA_FORMULAR = "https://docs.google.com/forms/d/e/TVUJ_KOD_FORMULARE/viewform"
+
 st.set_page_config(page_title="Firemní STK hlídač", layout="centered")
 
 st.title("🚗 Firemní evidence STK")
@@ -10,20 +14,23 @@ st.title("🚗 Firemní evidence STK")
 # Připojení ke Google Sheets
 conn = st.connection("gsheets", type=GSheetsConnection)
 
-# Načtení dat s ošetřením chyb
+# Načtení dat z listu "Odpovědi formuláře 1" (vytvoří ho Google Form automaticky)
 try:
-    df = conn.read()
-    # Pokud je tabulka úplně prázdná, vytvoříme základní sloupce
-    if df.empty or 'Datum_STK' not in df.columns:
-        df = pd.DataFrame(columns=['SPZ', 'Vozidlo', 'Datum_STK'])
+    # Pokud jsi formulář už propojil, list se jmenuje takto:
+    df = conn.read(worksheet="Odpovědi formuláře 1")
+    
+    # Přejmenování sloupců z formuláře na krátké názvy pro kód
+    # Předpokládám pořadí: Časové razítko, SPZ, Vozidlo, Datum STK
+    df.columns = ['Cas', 'SPZ', 'Vozidlo', 'Datum_STK']
 except Exception:
-    df = pd.DataFrame(columns=['SPZ', 'Vozidlo', 'Datum_STK'])
+    st.info("Zatím nejsou k dispozici žádná data z formuláře.")
+    df = pd.DataFrame(columns=['Cas', 'SPZ', 'Vozidlo', 'Datum_STK'])
 
 # Převod datumu na formát, kterému Python rozumí
 df['Datum_STK'] = pd.to_datetime(df['Datum_STK'], errors='coerce')
 
 # --- UPOZORNĚNÍ ---
-st.subheader("🔔 Aktuální termíny")
+st.subheader("🔔 Upozornění na tento měsíc")
 dnes = datetime.now()
 
 # Filtrujeme auta, co mají STK tento měsíc a rok
@@ -34,28 +41,24 @@ blizka_stk = df[
 
 if not blizka_stk.empty:
     for _, auto in blizka_stk.iterrows():
-        st.warning(f"⚠️ VOZIDLO {auto['SPZ']} ({auto['Vozidlo']}) má termín v tomto měsíci!")
+        st.warning(f"⚠️ VOZIDLO **{auto['SPZ']}** ({auto['Vozidlo']}) má termín STK v tomto měsíci!")
 else:
-    st.success("Tento měsíc žádná vozidla nemusí na kontrolu.")
+    st.success("Tento měsíc jsou všechna vozidla v pořádku.")
 
-# --- PŘIDÁVÁNÍ ---
-with st.expander("➕ Přidat nové vozidlo"):
-    with st.form("stk_form", clear_on_submit=True):
-        spz = st.text_input("SPZ")
-        model = st.text_input("Název vozidla")
-        datum = st.date_input("Datum příští STK")
-        submit = st.form_submit_button("Uložit do systému")
-        
-        if submit and spz:
-            new_row = pd.DataFrame([{"SPZ": spz, "Vozidlo": model, "Datum_STK": datum.strftime('%Y-%m-%d')}])
-            updated_df = pd.concat([df, new_row], ignore_index=True)
-            conn.update(data=updated_df)
-            st.success("Uloženo! Stránka se za chvíli aktualizuje.")
-            st.rerun()
+# --- PŘIDÁVÁNÍ (Tlačítko na formulář) ---
+st.markdown("---")
+st.subheader("➕ Nový záznam")
+st.write("Pro přidání auta nebo příjmu klikněte na tlačítko a vyplňte formulář:")
+st.link_button("Otevřít formulář pro zadání", ODKAZ_NA_FORMULAR)
 
 # --- PŘEHLED ---
-st.subheader("📋 Kompletní seznam")
-# Formátujeme datum pro lidské oko v tabulce
-display_df = df.copy()
-display_df['Datum_STK'] = display_df['Datum_STK'].dt.strftime('%d.%m.%Y')
-st.dataframe(display_df, use_container_width=True)
+st.markdown("---")
+st.subheader("📋 Kompletní seznam vozidel")
+
+# Úprava tabulky pro hezké zobrazení
+if not df.empty:
+    display_df = df.copy()
+    # Zobrazíme jen důležité sloupce a zformátujeme datum
+    display_df = display_df[['SPZ', 'Vozidlo', 'Datum_STK']]
+    display_df['Datum_STK'] = display_df['Datum_STK'].dt.strftime('%d.%m.%Y')
+    st.dataframe(display_df, use_container_width=True)

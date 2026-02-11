@@ -28,7 +28,7 @@ try:
         df.columns = [f"col_{i}" for i in range(len(df.columns))]
         
         # Převod sloupce s datem (index 3)
-        df['col_3'] = pd.to_datetime(df['col_3'], errors='coerce')
+        df['col_3'] = pd.to_datetime(df['col_3'], dayfirst=True, errors='coerce')
         
         dnes = datetime.now()
         

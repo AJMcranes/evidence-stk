@@ -16,32 +16,32 @@ ODKAZ_NA_FORMULAR = "https://forms.gle/xSDhpAeK5ZC83DEZ6"
 
 # --- HLAVNÍ ČÁST: NAČTENÍ A ZOBRAZENÍ ---
 try:
-    # ttl=0 zajistí, že při každém Refresh (F5) uvidíš nová data
-    # Načítáme první list tabulky (Data)
-    df = conn.read(worksheet="Data", ttl=0)
+    # Načteme PRVNÍ list tabulky (bez uvedení názvu, aby nebyla chyba 400)
+    df = conn.read(ttl=0)
     
-    # Odstraníme úplně prázdné řádky, pokud v tabulce jsou
+    # Odstraníme úplně prázdné řádky
     df = df.dropna(how='all')
     
     if df is not None and not df.empty:
-        # --- KONTROLA TERMÍNŮ STK ---
-        # Předpokládáme pořadí sloupců: 0:Čas, 1:SPZ, 2:Vozidlo, 3:Datum STK
-        # Převedeme sloupec s datem na formát, kterému Python rozumí
-        datum_sloupec = df.columns[3]
-        df[datum_sloupec] = pd.to_datetime(df[datum_sloupec], errors='coerce')
+        # Přejmenujeme sloupce pro vnitřní potřebu (0:Čas, 1:SPZ, 2:Vozidlo, 3:Datum STK)
+        # Použijeme iloc, aby nás nezajímalo, jak se sloupce jmenují v tabulce
+        df.columns = [f"col_{i}" for i in range(len(df.columns))]
+        
+        # Převod sloupce s datem (index 3)
+        df['col_3'] = pd.to_datetime(df['col_3'], errors='coerce')
         
         dnes = datetime.now()
         
-        # Vyfiltrujeme auta, která mají STK v aktuálním měsíci a roce
+        # --- KONTROLA TERMÍNŮ STK ---
         stk_tento_mesic = df[
-            (df[datum_sloupec].dt.month == dnes.month) & 
-            (df[datum_sloupec].dt.year == dnes.year)
+            (df['col_3'].dt.month == dnes.month) & 
+            (df['col_3'].dt.year == dnes.year)
         ]
         
         if not stk_tento_mesic.empty:
             st.error(f"⚠️ **POZOR:** V tomto měsíci ({dnes.strftime('%m/%Y')}) končí STK u těchto aut:")
             for _, auto in stk_tento_mesic.iterrows():
-                st.write(f"👉 **{auto[df.columns[1]]}** — {auto[df.columns[2]]}")
+                st.write(f"👉 **{auto['col_1']}** — {auto['col_2']}")
         else:
             st.success("✅ Pro tento měsíc jsou všechna auta v pořádku.")
 
@@ -49,15 +49,14 @@ try:
         st.divider()
         st.subheader("📋 Kompletní seznam vozidel")
         
-        # Vytvoříme kopii pro hezké zobrazení (jen důležité sloupce a čitelný formát data)
-        display_df = df.iloc[:, [1, 2, 3]].copy() # Vezme sloupce SPZ, Vozidlo, Datum STK
+        display_df = df.iloc[:, [1, 2, 3]].copy()
         display_df.columns = ['SPZ', 'Vozidlo', 'Datum příští STK']
         display_df['Datum příští STK'] = display_df['Datum příští STK'].dt.strftime('%d.%m.%Y')
         
         st.dataframe(display_df, use_container_width=True)
         
     else:
-        st.warning("⚠️ Tabulka je prázdná. Přidejte první vozidlo přes formulář.")
+        st.warning("⚠️ Tabulka je prázdná nebo nebyla nalezena data.")
 
 except Exception as e:
     st.error("❌ Chyba při načítání dat.")
